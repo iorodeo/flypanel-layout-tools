@@ -1,0 +1,18 @@
+[units]          
+angle = 'deg'        # Units used for angles
+length = 'in'        # units used for lengths
+
+[panel]              # Panel parameters
+number = 12          # number of panels in  the arena
+omitted = []         # list  of omitted panels
+offset_angle = 0     # offset angle for panel position
+width = 1.5925       # width of panels 
+depth = 0.7          # depth from front to back of panels 
+
+[pins]               # Header pin parameters
+number = 15          # number of header pins
+pitch = 0.1          # pitch (distance) between header pins
+depth = 0.5118       # depth from front to center of header pins 
+
+
+
