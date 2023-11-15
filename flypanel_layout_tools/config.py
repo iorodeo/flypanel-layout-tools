@@ -2,7 +2,6 @@ import toml
 
 class Config(dict):
 
-
     def __init__(self, *arg, filename=None):
         super().__init__(*arg)
         if filename is not None:
