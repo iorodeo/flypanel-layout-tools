@@ -1,4 +1,5 @@
 import json
+import pprint
 import numpy as np
 import matplotlib.pyplot as plt
 from .config import Config 
@@ -16,8 +17,8 @@ class RingLayout:
         Parameters
         ---------
         config : Path, str, or dict
-                 Path/str specifying the location of the .toml configuration file for
-                 the arena or a dict with the configration valus.
+                 Path/str specifying the location of the .toml configuration 
+                 file for the arena or a dict with the configration values.
         """
         self.config = self.load_config(config)
         self.values = self.make_values()
@@ -27,7 +28,8 @@ class RingLayout:
 
     def make_values(self):
         """
-        Create arena layout values for creating plots and placing pcb components.
+        Creates the arena layout values for creating plots and placing pcb
+        components.
         """
 
         # Extract parameters from config - convert so units are mm and rad
@@ -39,9 +41,8 @@ class RingLayout:
         installed_mask = [not (i in omitted_panels) for i in range(num_panel)]
         num_pins  = self.config['pins']['number']
         pin_pitch = self.to_mm(self.config['pins']['pitch'])
-
-        # Total length of header pins
-        pin_width = (num_pins - 1)*pin_pitch   
+        pin_depth = self.to_mm(self.config['pins']['depth'])
+        omitted_pins = self.config['pins']['omitted']
 
         # Angle subtended by one panel 
         subtended_angle = 2.0*np.pi/num_panel      
@@ -49,8 +50,11 @@ class RingLayout:
         # Radius of circle tangent to panel front
         radius_front = (0.5*panel_width)/np.tan(0.5*subtended_angle)
 
-        # Radius of circle tanget to panel rear
+        # Radius of circle tangent to panel rear
         radius_back = radius_front + panel_depth
+
+        # Radius of circle tangent to line of panel pins
+        radius_pins = radius_front + pin_depth
 
         # Array of angular positions
         angles = np.arange(num_panel)*subtended_angle + offset_angle
@@ -69,22 +73,27 @@ class RingLayout:
         lines_back  = get_face_lines(back_x, back_y, angles, panel_width)
         lines_left, lines_right = get_side_lines(lines_front, lines_back)
 
+        # Get pin positions
+        pin_pos = get_pin_pos(angles, num_pins, radius_pins, pin_pitch, omitted_pins)
+
         values = {
                 'panel': {
-                    'number'    : num_panel,
-                    'width'     : panel_width,
-                    'depth'     : panel_depth,
-                    'subtended' : subtended_angle,
-                    'omitted'   : omitted_panels,
+                    'number'       : num_panel,
+                    'width'        : panel_width,
+                    'depth'        : panel_depth,
+                    'subtended'    : subtended_angle,
+                    'omitted'      : omitted_panels,
+                    'offset_angle' : offset_angle,
                     },
                 'pins': {
                     'number'    : num_pins, 
                     'pitch'     : pin_pitch,
-                    'width'     : pin_width,
+                    'omitted'   : omitted_pins,
                     },
                 'installed'     : installed_mask,
                 'radius_front'  : radius_front,
                 'radius_back'   : radius_back,
+                'radius_pins'   : radius_pins,
                 'angles'        : angles,
                 'front_x'       : front_x,
                 'front_y'       : front_y,
@@ -94,25 +103,37 @@ class RingLayout:
                 'lines_back'    : lines_back, 
                 'lines_left'    : lines_left, 
                 'lines_right'   : lines_right, 
+                'pin_pos'       : pin_pos,
                 }
         return values
 
+
     def print_values(self):
+        """ Prints a subset of values of arena config """
+        prec = 4
         print()
         print('layout parameters')
-        print('-'*95)
-        print(f"num_panel:          {self.values['panel']['number']}")
-        print(f"panel_width:        {self.values['panel']['width']} (mm)")
-        print(f"panel_depth:        {self.values['panel']['depth']} (mm)")
-        print(f"subtended_angle:    {self.values['panel']['subtended']} (rad)")
-        print(f"installed:          {self.values['installed']}")
-        print(f"num_pins:           {self.values['pins']['number']}")
-        print(f"pin_width:          {self.values['pins']['width']} (mm)")
-        print(f"radius_front:       {self.values['radius_front']} (mm)")
-        print(f"radius_back:        {self.values['radius_back']} (mm)")
+        print('-'*90)
+        print(f'panel')
+        print(f'  number:        {self.values["panel"]["number"]}')
+        print(f'  width:         {self.values["panel"]["width"]:0.{prec}f} (mm)')
+        print(f'  depth:         {self.values["panel"]["depth"]:0.{prec}f} (mm)')
+        print(f'  subtended:     {self.values["panel"]["subtended"]:0.{prec}f} (rad)')
+        print(f'  omitted:       {self.values["panel"]["omitted"]}')
+        print(f'  offset angle:  {self.values["panel"]["offset_angle"]:0.{prec}f} (rad)')
+        print(f'pins')
+        print(f'  number:        {self.values["pins"]["number"]}')
+        print(f'  pitch:         {self.values["pins"]["pitch"]:0.{prec}f} (mm)')
+        print(f'  width:         {self.values["pins"]["pitch"]:0.{prec}f} (mm)')
+        print(f'radius_front:    {self.values["radius_front"]:0.{prec}f} (mm)')
+        print(f'radius_pins:     {self.values["radius_pins"]:0.{prec}f} (mm)')
+        print(f'radius_back:     {self.values["radius_back"]:0.{prec}f} (mm)')
+        #print(f'installed:       {self.values["installed"]}')
         print()
 
+
     def show(self):
+        """ Plots a figure of showing the arena layout geometry """
         # Get title string
         num_panel = self.values['panel']['number']
         num_installed = np.array(self.values['installed']).sum()
@@ -121,14 +142,21 @@ class RingLayout:
         # Create plot showing arena layout
         fig, ax = plt.subplots(1,1)
         lines_and_colors = [ 
-                ('lines_front', 'b'),
-                ('lines_back',  'k'),
-                ('lines_left',  'k'),
-                ('lines_right', 'k'),
+                ('lines_front', 'g'),
+                ('lines_back',  'b'),
+                ('lines_left',  'b'),
+                ('lines_right', 'b'),
                 ]
+
+        # Plot panel sides 
         for name, color in lines_and_colors:
             for line in self.values[name]:
                 plt.plot(*line, color)
+
+        # Plot panel pins
+        for _, pos in self.values['pin_pos'].items():
+            plt.plot(*pos, '.k')
+
         ax.grid(True)
         ax.set_xlabel('x (mm)')
         ax.set_ylabel('y (mm)')
@@ -224,33 +252,52 @@ def get_side_lines(lines_front, lines_back):
             ])
     return lines_left, lines_right
 
-def get_pin_pos(xvals, yvals, angles, num_pins, pin_pitch):
+def get_pin_pos(angles, num, radius, pitch, omitted):
     """
     Get panel pin positions
 
     Parameters 
     ----------
-    xvals     : ndarray 
-                array of x-coord of panel face centers
+    angles  : ndarray
+              array of panel angles (rad) around ring
 
-    yvals     : ndarray 
-                array of y-coord of panel face centers
+    num     : int 
+              number of pins on panel header
 
-    angles    : ndarray
-                array of panel angles (rad) around ring
+    radius  : float
+              radius of circle tangent to line of panel pins
 
-    num_pins  : int 
-                number of pins on panel header
+    pitch   : float
+              pitch/dist between header pins
 
-    pin_pitch : float
-                pitch/dist between header pins
+    omitted : list of omitted pins
 
     Returns
     -------
 
 
     """
-    pass
+    ind_to_pin_pos = {}
+    width = (num - 1)*pitch   
+    for ind, ang in enumerate(angles):
+        cx = radius*np.cos(ang)
+        cy = radius*np.sin(ang)
+        pin_pos_x = []
+        pin_pos_y = []
+        for i in range(num):
+            if (i+1) in omitted:
+                continue
+            d  = i*pitch
+            x = cx + (i*pitch - 0.5*width)*np.cos(ang + 0.5*np.pi)
+            y = cy + (i*pitch - 0.5*width)*np.sin(ang + 0.5*np.pi)
+            pin_pos_x.append(x)
+            pin_pos_y.append(y)
+        ind_to_pin_pos[ind] = (pin_pos_x, pin_pos_y)
+    return ind_to_pin_pos
+
+
+
+
 
 
 
