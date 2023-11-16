@@ -15,5 +15,33 @@ pitch = 2.54         # pitch (distance) between header pins
 depth = 12.1         # depth from front to header pins 
 omitted = []         # pins omitted from header
 
+[pcb]
+center_x = 177.8     # PCB center x-coordinate
+center_y = 177.8     # PCB center y-coordinate 
+
+[pcb.panel]
+ref_prefix = 'P'     # Symbol prefix for panel headers
+ref_start = 1        # Start number for panel headers
+
+[pcb.relative]
+model = 1            # Model for relative component placement
+	             # and lists of components to place
+
+1 = []               
+2 = []
+3 = []
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
