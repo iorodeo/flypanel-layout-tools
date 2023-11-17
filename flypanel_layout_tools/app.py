@@ -1,22 +1,34 @@
+import pathlib
 import click
 from .ring_layout import RingLayout
 
 @click.command()
 @click.help_option('-h', '--help')
-@click.option('-c', '--config', help='configuration file')
-@click.option('-p', '--pcb', help='kicad pcb file')
-@click.argument('geometry')
-def cli(geometry, config, pcb):
+@click.option('-c', '--conf', default='config.toml', help='configuration file')
+@click.option('-f', '--file', help='kicad pcb file')
+@click.option('--plot/--no-plot', ' /-n', default=True)
+
+@click.argument('geom')
+def cli(geom, conf, file, plot):
     """
     Tool for generating flypanel arena layouts and placing the components on
     a .kicad_pcb file. 
 
-    GEOMETRY = arena geometry, e.g. ring
+    GEOM = arena geometry, e.g. ring
     """
-    if geometry.lower() == 'ring':
-        print('running ring layout')
+    print()
+    print(f'flypanel-layout')
+    print(f'---------------')
+    if geom.lower() == 'ring':
+        print(f'geometry:  {geom}')
+        print(f'config:    {conf}')
+        print(f'plot:      {plot}')
+        print()
+        layout = RingLayout(conf,plot)
+        if file is not None:
+            layout.place_components(file)
     else:
         print()
-        print(f"flypanel arena geometry = '{geometry}' not supported yet.")
+        print(f"arena geometry = '{geometry}' not supported yet.")
         print()
 

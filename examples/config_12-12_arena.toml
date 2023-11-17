@@ -25,8 +25,8 @@ ref_start = 1        # Start number for panel headers
 
 [pcb.relative]
 model = 1            # Model for relative component placement
-	             # and lists of components to place
 
+# Lists of relative components to place
 1 = []               
 2 = []
 3 = []

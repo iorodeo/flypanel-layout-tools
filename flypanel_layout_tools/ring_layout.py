@@ -1,5 +1,7 @@
+import copy
 import json
 import pprint
+import pcbnew
 import numpy as np
 import matplotlib.pyplot as plt
 from .config import Config 
@@ -10,7 +12,9 @@ class RingLayout:
     Layout creator for ring arenas. 
     """
 
-    def __init__(self, config):
+    PRINT_FLOAT_PREC = 4
+
+    def __init__(self, config, plot=False):
         """
         RingLayout class constructor
 
@@ -23,7 +27,8 @@ class RingLayout:
         self.config = self.load_config(config)
         self.values = self.make_values()
         self.print_values()
-        self.show()
+        if plot:
+            self.plot_arena()
 
 
     def make_values(self):
@@ -39,6 +44,7 @@ class RingLayout:
         offset_angle = self.to_rad(self.config['panel']['offset_angle'])
         omitted_panels = self.config['panel']['omitted']
         installed_mask = [not (i in omitted_panels) for i in range(num_panel)]
+        num_installed = np.array(installed_mask).sum()
         num_pins  = self.config['pins']['number']
         pin_pitch = self.to_mm(self.config['pins']['pitch'])
         pin_depth = self.to_mm(self.config['pins']['depth'])
@@ -74,7 +80,8 @@ class RingLayout:
         lines_left, lines_right = get_side_lines(lines_front, lines_back)
 
         # Get pin positions
-        pin_pos = get_pin_pos(angles, num_pins, radius_pins, pin_pitch, omitted_pins)
+        pin_positions, pin_centers = get_pin_pos(angles, num_pins, radius_pins, 
+                pin_pitch, omitted_pins)
 
         values = {
                 'panel': {
@@ -91,6 +98,7 @@ class RingLayout:
                     'omitted'   : omitted_pins,
                     },
                 'installed'     : installed_mask,
+                'num_installed' : num_installed,
                 'radius_front'  : radius_front,
                 'radius_back'   : radius_back,
                 'radius_pins'   : radius_pins,
@@ -103,17 +111,18 @@ class RingLayout:
                 'lines_back'    : lines_back, 
                 'lines_left'    : lines_left, 
                 'lines_right'   : lines_right, 
-                'pin_pos'       : pin_pos,
+                'pin_positions' : pin_positions,
+                'pin_centers'   : pin_centers,
                 }
         return values
 
 
     def print_values(self):
         """ Prints a subset of values of arena config """
-        prec = 4
+        prec = self.PRINT_FLOAT_PREC
         print()
-        print('layout parameters')
-        print('-'*90)
+        print('parameters')
+        print('----------')
         print(f'panel')
         print(f'  number:        {self.values["panel"]["number"]}')
         print(f'  width:         {self.values["panel"]["width"]:0.{prec}f} (mm)')
@@ -132,7 +141,7 @@ class RingLayout:
         print()
 
 
-    def show(self):
+    def plot_arena(self):
         """ Plots a figure of showing the arena layout geometry """
         # Get title string
         num_panel = self.values['panel']['number']
@@ -154,7 +163,7 @@ class RingLayout:
                 plt.plot(*line, color)
 
         # Plot panel pins
-        for _, pos in self.values['pin_pos'].items():
+        for pos in self.values['pin_positions']:
             plt.plot(*pos, '.k')
 
         ax.grid(True)
@@ -164,6 +173,57 @@ class RingLayout:
         ax.grid(True)
         ax.set_title(title)
         plt.show()
+
+    def place_components(self, filename):
+
+        # Load and print pcb placement parameters
+        pcb_params = self.get_pcb_params()
+        self.print_pcb_params(filename, pcb_params)
+
+        
+        pcb_cx = pcb_params['center_x']
+        pcb_cy = pcb_params['center_y']
+        num_installed = self.values['num_installed']
+        ref_prefix = pcb_params['panel']['ref_prefix']
+        ref_start = pcb_params['panel']['ref_start']
+        panel_ref_list = [f'{ref_prefix}{i}' for i in range(ref_start, ref_start+num_installed)]
+
+        # Load board and place components
+        pcb = pcbnew.LoadBoard(filename)
+        for ind, panel_ref in enumerate(panel_ref_list):
+            footprint = pcb.FindFootprintByReference(panel_ref)
+            angle = self.values['angles'][ind]
+            cx, cy = self.values['pin_centers'][ind]
+            cx, cy = cx + pcb_cx, cy + pcb_cy
+            footprint.SetOrientationDegrees(np.rad2deg(-(angle - np.pi/2)))
+            pos = pcbnew.VECTOR2I(pcbnew.FromMM(float(cx)),pcbnew.FromMM(float(cy)))
+            footprint.SetPosition(pos)
+
+        pcb.Save('test.kicad_pcb')
+            
+
+        
+
+
+
+    def get_pcb_params(self):
+        pcb_params = copy.deepcopy(self.config['pcb'])
+        pcb_params['center_x'] = self.to_mm(pcb_params['center_x'])
+        pcb_params['center_y'] = self.to_mm(pcb_params['center_y'])
+        return pcb_params
+
+    def print_pcb_params(self, filename, pcb_params):
+        prec = self.PRINT_FLOAT_PREC
+        print(f'placing components')
+        print(f'------------------')
+        print(f'  pcb file:      {filename}')
+        print(f'  center x:      {pcb_params["center_x"]:0.{prec}f}')
+        print(f'  center y:      {pcb_params["center_y"]:0.{prec}f}')
+        print(f'  panel')
+        print(f'    ref_prefix:  {pcb_params["panel"]["ref_prefix"]}')
+        print(f'    ref_start:   {pcb_params["panel"]["ref_start"]}')
+        print(f'  relative')   
+        print(f'    model:       {pcb_params["relative"]["model"]}')
 
 
     def load_config(self, config):
@@ -275,13 +335,21 @@ def get_pin_pos(angles, num, radius, pitch, omitted):
     Returns
     -------
 
+    pin_posittions : list 
+                     list of pin positions for each header
+
+    pin centers    : list 
+                     list of pin center x,y coords for each header
+
 
     """
-    ind_to_pin_pos = {}
+    pin_positions = [] 
+    pin_centers = [] 
     width = (num - 1)*pitch   
     for ind, ang in enumerate(angles):
         cx = radius*np.cos(ang)
         cy = radius*np.sin(ang)
+        pin_centers.append((cx, cy))
         pin_pos_x = []
         pin_pos_y = []
         for i in range(num):
@@ -292,8 +360,8 @@ def get_pin_pos(angles, num, radius, pitch, omitted):
             y = cy + (i*pitch - 0.5*width)*np.sin(ang + 0.5*np.pi)
             pin_pos_x.append(x)
             pin_pos_y.append(y)
-        ind_to_pin_pos[ind] = (pin_pos_x, pin_pos_y)
-    return ind_to_pin_pos
+        pin_positions.append((pin_pos_x, pin_pos_y))
+    return pin_positions, pin_centers
 
 
 
