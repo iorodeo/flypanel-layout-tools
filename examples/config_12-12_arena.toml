@@ -3,7 +3,8 @@ angle = 'deg'        # Units used for angles
 length = 'mm'        # units used for lengths
 
 [panel]              # Panel parameters
-number = 12          # number of panels in  the arena
+#number = 12          # number of panels in  the arena
+number = 8          # number of panels in  the arena
 omitted = []         # list  of omitted panels
 offset_angle = 0     # offset angle for panel position
 width = 40.5         # width of panels 
@@ -26,11 +27,19 @@ ref_start = 1        # Start number for panel headers
 [pcb.relative]
 model = 1            # Model for relative component placement
 
-# Lists of relative components to place
-1 = []               
-2 = []
-3 = []
-
+# Lists of relative components for placement 
+1 =  [ 'U6',  'R3', 'C11', 'C12']               
+2 =  [ 'U7',  'R4', 'C13', 'C14']
+3 =  [ 'U8',  'R5', 'C15', 'C16']
+4 =  [ 'U9',  'R6', 'C17', 'C18']
+5 =  ['U10',  'R7', 'C19', 'C20']
+6 =  ['U11',  'R8', 'C21', 'C22']
+7 =  ['U12',  'R9', 'C23', 'C24']
+8 =  ['U13', 'R10', 'C25', 'C26']
+9 =  ['U14', 'R11', 'C27', 'C28']
+10 = ['U15', 'R12', 'C29', 'C30']
+11 = ['U16', 'R13', 'C31', 'C32']
+12 = ['U17', 'R14', 'C33', 'C34']
 
 
 
