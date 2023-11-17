@@ -180,16 +180,19 @@ class RingLayout:
         pcb_params = self.get_pcb_params()
         self.print_pcb_params(filename, pcb_params)
 
-        
+        # Extract placement parameters
         pcb_cx = pcb_params['center_x']
         pcb_cy = pcb_params['center_y']
-        num_installed = self.values['num_installed']
         ref_prefix = pcb_params['panel']['ref_prefix']
         ref_start = pcb_params['panel']['ref_start']
-        panel_ref_list = [f'{ref_prefix}{i}' for i in range(ref_start, ref_start+num_installed)]
+        num = self.values['num_installed']
+        panel_ref_list = [f'{ref_prefix}{i}' for i in range(ref_start, ref_start+num)]
 
         # Load board and place components
         pcb = pcbnew.LoadBoard(filename)
+
+        # Get relative positions from model panel
+
         for ind, panel_ref in enumerate(panel_ref_list):
             footprint = pcb.FindFootprintByReference(panel_ref)
             angle = self.values['angles'][ind]
