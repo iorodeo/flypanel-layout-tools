@@ -3,8 +3,7 @@ angle = 'deg'        # Units used for angles
 length = 'mm'        # units used for lengths
 
 [panel]              # Panel parameters
-#number = 12          # number of panels in  the arena
-number = 8          # number of panels in  the arena
+number = 12          # number of panels in  the arena
 omitted = []         # list  of omitted panels
 offset_angle = 0     # offset angle for panel position
 width = 40.5         # width of panels 
