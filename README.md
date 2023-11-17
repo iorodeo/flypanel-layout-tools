@@ -21,18 +21,18 @@ poetry install
 
 ### Command line interface
 
-![cli_screenshot](cli_screenshot.png)
+![cli_screenshot](images/cli_screenshot.png)
 
 
 ### Example output
 
 
 cli output 
-![cli_example_output](cli_example_output.png)
+![cli_example_output](images/cli_example_output.png)
 
 
 arena plot
-![arena_plot_example](8-8-ring-arena_plot.png)
+![arena_plot_example](images/8-8-ring-arena_plot.png)
 
 layout example
-![arena_plot_example](8-8_arena_layout_example.png)
+![arena_plot_example](images/8-8_arena_layout_example.png)
