@@ -65,6 +65,7 @@ class RingLayout:
         # Array of angular positions
         angles = np.arange(num_panel)*subtended_angle + offset_angle
         angles = angles[installed_mask]
+        angles = -angles
 
         # x,y coords of panel center front positions
         front_x = radius_front*np.cos(angles)
@@ -550,8 +551,8 @@ def get_new_comp_data(arena_values, pcb_params, panel_ref_list, panel_ref_to_rel
     # is at origin and rotation is 0.0
     angle = model_data['angle']
     rot_matrix = np.array([
-        [np.cos(-angle), -np.sin(-angle)],
-        [np.sin(-angle),  np.cos(-angle)],
+        [np.cos(angle), -np.sin(angle)],
+        [np.sin(angle),  np.cos(angle)],
         ])
     for data in model_rel_data:
         p = np.array([data['x']-model_data['x'], data['y'] - model_data['y']])
