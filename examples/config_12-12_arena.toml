@@ -16,8 +16,12 @@ depth = 12.1         # depth from front to header pins
 omitted = []         # pins omitted from header
 
 [pcb]
+size_x = 254.0       # PCB size in x-dimension
+size_y = 254.0       # PCB size in y-dimension
 center_x = 177.8     # PCB center x-coordinate
 center_y = 177.8     # PCB center y-coordinate 
+line_width = 0.3     # PCB edge line width
+cutout_diam = 156.48 # Inside hole radius
 
 [pcb.panel]
 ref_prefix = 'P'     # Symbol prefix for panel headers
