@@ -1,0 +1,27 @@
+[units]          
+angle = 'deg'        # Units used for angles
+length = 'mm'        # units used for lengths
+
+[pcb]                # PCB parameters
+size_x = 40.0        # panel width 
+size_y = 40.0        # panel height 
+center_x = 70.0      # PCB center x-coord
+center_y = 70.0      # PCB center y-coord
+
+[pcb.led]            # LED/Array specific parameters
+nrows = 16           # LED array number of rows
+ncols = 16           # LED array number of columns
+angle = 225          # LED orientation
+ref_prefix = 'D'     # Symbol prefix for panel headers
+ref_start = 1        # Start number for panel headers
+
+
+
+
+
+
+
+
+
+
+

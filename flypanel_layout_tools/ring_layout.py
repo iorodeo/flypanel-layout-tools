@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .config import Config 
 from .convert import inch_to_mm
+from .convert import pos_to_pcbnew_vec 
 
 class RingLayout:
     """
@@ -287,11 +288,6 @@ class RingLayout:
 # Utility functions
 # -------------------------------------------------------------------------------
 
-def pos_to_pcbnew_vec(p):
-    x, y = p
-    xi = pcbnew.FromMM(x)
-    yi = pcbnew.FromMM(y)
-    return pcbnew.VECTOR2I(xi,yi)
 
 
 def get_face_lines(xvals, yvals, angles, width):
