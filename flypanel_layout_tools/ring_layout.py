@@ -244,7 +244,7 @@ class RingLayout:
         shape.SetLayer(pcbnew.Edge_Cuts)
         pcb.Add(shape)
 
-        pcb.Save('test.kicad_pcb')
+        pcb.Save(f'modified_{filename}')
 
 
 
@@ -425,8 +425,9 @@ def get_panel_ref_to_rel(pcb_params, panel_num_list, panel_ref_list):
         try:
             rel_comps = pcb_params['relative'][f'{panel_num}']
         except KeyError:
-            print(f'relative comps for {panel_num} not found')
-        else:
+            #print(f'relative comps for {panel_num} not found')
+            rel_comps = []
+        finally:
             panel_ref_to_rel[panel_ref] = rel_comps
     return panel_ref_to_rel
 
@@ -534,7 +535,7 @@ def get_new_comp_data(arena_values, pcb_params, panel_ref_list, panel_ref_to_rel
     # Get desired x,y positions and angles for panel headers
     new_comp_data = {}
     for ind, panel_ref in enumerate(panel_ref_list):
-        angle = -(angles[ind] - np.pi/2)
+        angle = -(angles[ind] + np.pi/2) 
         cx, cy = pin_centers[ind]
         cx, cy = float(cx + pcb_cx), float(cy + pcb_cy)
         new_comp_data[panel_ref] = {'x': cx, 'y': cy, 'angle': angle }
