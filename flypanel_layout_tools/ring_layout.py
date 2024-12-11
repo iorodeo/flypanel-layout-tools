@@ -213,37 +213,38 @@ class RingLayout:
             footprint.SetOrientationDegrees(np.rad2deg(data['angle']))
 
         # Create outside boundary
-        dx = 0.5*pcb_params['size_x']
-        dy = 0.5*pcb_params['size_y']
-        cx = pcb_params['center_x']
-        cy = pcb_params['center_y']
-        line_list = [
-                ((cx-dx, cy-dy), (cx-dx, cy+dy)),
-                ((cx-dx, cy+dy), (cx+dx, cy+dy)),
-                ((cx+dx, cy+dy), (cx+dx, cy-dy)),
-                ((cx+dx, cy-dy), (cx-dx, cy-dy)),
-                ]
-        for p, q in line_list:
-            pvec = pos_to_pcbnew_vec(p)
-            qvec = pos_to_pcbnew_vec(q)
-            shape = pcbnew.PCB_SHAPE(pcb, pcbnew.SHAPE_T_SEGMENT)
-            shape.SetStart(pvec)
-            shape.SetEnd(qvec)
-            shape.SetLayer(pcbnew.Edge_Cuts)
-            shape.SetWidth(pcbnew.FromMM(pcb_params['line_width']))
-            pcb.Add(shape)
+        if pcb_params['add_boundary']:
+            dx = 0.5*pcb_params['size_x']
+            dy = 0.5*pcb_params['size_y']
+            cx = pcb_params['center_x']
+            cy = pcb_params['center_y']
+            line_list = [
+                    ((cx-dx, cy-dy), (cx-dx, cy+dy)),
+                    ((cx-dx, cy+dy), (cx+dx, cy+dy)),
+                    ((cx+dx, cy+dy), (cx+dx, cy-dy)),
+                    ((cx+dx, cy-dy), (cx-dx, cy-dy)),
+                    ]
+            for p, q in line_list:
+                pvec = pos_to_pcbnew_vec(p)
+                qvec = pos_to_pcbnew_vec(q)
+                shape = pcbnew.PCB_SHAPE(pcb, pcbnew.SHAPE_T_SEGMENT)
+                shape.SetStart(pvec)
+                shape.SetEnd(qvec)
+                shape.SetLayer(pcbnew.Edge_Cuts)
+                shape.SetWidth(pcbnew.FromMM(pcb_params['line_width']))
+                pcb.Add(shape)
 
         # Add inner cutout
-        diam = pcb_params['cutout_diam']
-        shape = pcbnew.PCB_SHAPE(pcb, pcbnew.SHAPE_T_CIRCLE)
-        cvec = pos_to_pcbnew_vec((cx,cy))
-        shape.SetCenter(cvec)
-        shape.SetEndX(pcbnew.FromMM(0.5*diam + cx))
-        shape.SetEndY(pcbnew.FromMM(cy))
-        shape.SetWidth(pcbnew.FromMM(pcb_params['line_width']))
-        shape.SetLayer(pcbnew.Edge_Cuts)
-        pcb.Add(shape)
-
+        if pcb_params['add_cutout']:
+            diam = pcb_params['cutout_diam']
+            shape = pcbnew.PCB_SHAPE(pcb, pcbnew.SHAPE_T_CIRCLE)
+            cvec = pos_to_pcbnew_vec((cx,cy))
+            shape.SetCenter(cvec)
+            shape.SetEndX(pcbnew.FromMM(0.5*diam + cx))
+            shape.SetEndY(pcbnew.FromMM(cy))
+            shape.SetWidth(pcbnew.FromMM(pcb_params['line_width']))
+            shape.SetLayer(pcbnew.Edge_Cuts)
+            pcb.Add(shape)
         pcb.Save(f'modified_{filename}')
 
 
@@ -256,6 +257,8 @@ class RingLayout:
         pcb_params['center_y'] = self.to_mm(pcb_params['center_y'])
         pcb_params['line_width'] = self.to_mm(pcb_params['line_width'])
         pcb_params['cutout_diam'] = self.to_mm(pcb_params['cutout_diam'])
+        pcb_params['add_boundary'] = pcb_params.get('add_boundary', True)
+        pcb_params['add_cutout'] = pcb_params.get('add_cutout', True)
         return pcb_params
 
     def print_pcb_params(self, filename, pcb_params):
