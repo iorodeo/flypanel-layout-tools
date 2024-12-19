@@ -40,6 +40,8 @@ class RingLayout:
 
         # Extract parameters from config - convert so units are mm and rad
         num_panel = self.config['panel']['number']
+        pcb_side = self.config['pcb']['panel'].get('pcb_side', 'front')
+        panel_ref_prefix = self.config['pcb']['panel']['ref_prefix']
         panel_width = self.to_mm(self.config['panel']['width'])
         panel_depth = self.to_mm(self.config['panel']['depth'])
         offset_angle = self.to_rad(self.config['panel']['offset_angle'])
@@ -93,6 +95,8 @@ class RingLayout:
                     'subtended'    : subtended_angle,
                     'omitted'      : omitted_panels,
                     'offset_angle' : offset_angle,
+                    'pcb_side'     : pcb_side,
+                    'ref_prefix'   : panel_ref_prefix,
                     },
                 'pins': {
                     'number'    : num_pins, 
@@ -132,6 +136,7 @@ class RingLayout:
         print(f'  subtended:     {self.values["panel"]["subtended"]:0.{prec}f} (rad)')
         print(f'  omitted:       {self.values["panel"]["omitted"]}')
         print(f'  offset angle:  {self.values["panel"]["offset_angle"]:0.{prec}f} (rad)')
+        print(f'  pcb_side:      {self.values["panel"]["pcb_side"]}')
         print(f'pins')
         print(f'  number:        {self.values["pins"]["number"]}')
         print(f'  pitch:         {self.values["pins"]["pitch"]:0.{prec}f} (mm)')
@@ -210,7 +215,11 @@ class RingLayout:
             pos = data['x'], data['y']
             vec = pos_to_pcbnew_vec(pos)
             footprint.SetPosition(vec)
-            footprint.SetOrientationDegrees(np.rad2deg(data['angle']))
+            if self.values['panel']['pcb_side'] == 'back' and ref_prefix in ref:
+                footprint.Flip(vec, True)
+                footprint.SetOrientationDegrees(np.rad2deg(data['angle'] - np.pi))
+            else:
+                footprint.SetOrientationDegrees(np.rad2deg(data['angle']))
 
         # Create outside boundary
         if pcb_params['add_boundary']:
@@ -534,6 +543,7 @@ def get_new_comp_data(arena_values, pcb_params, panel_ref_list, panel_ref_to_rel
     model_ref = f'{ref_prefix}{model_num}'
     angles = arena_values['angles']
     pin_centers = arena_values['pin_centers']
+    pcb_side = arena_values['panel']['pcb_side']
 
     # Get desired x,y positions and angles for panel headers
     new_comp_data = {}
