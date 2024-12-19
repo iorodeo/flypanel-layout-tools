@@ -215,7 +215,7 @@ class RingLayout:
             pos = data['x'], data['y']
             vec = pos_to_pcbnew_vec(pos)
             footprint.SetPosition(vec)
-            if self.values['panel']['pcb_side'] == 'back' and ref_prefix in ref:
+            if self.values['panel']['pcb_side'] == 'back' and ref in panel_ref_list:
                 footprint.Flip(vec, True)
                 footprint.SetOrientationDegrees(np.rad2deg(data['angle'] - np.pi))
             else:
