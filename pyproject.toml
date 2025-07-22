@@ -14,7 +14,8 @@ toml = "^0.10.2"
 click = "^8.1.7"
 
 [tool.poetry.scripts]
-flypanel-layout = "flypanel_layout_tools.app:cli"
+arena-layout = "flypanel_layout_tools.arena_layout_app:cli"
+panel-led-layout = "flypanel_layout_tools.led_layout_app:cli"
 
 [build-system]
 requires = ["poetry-core"]
