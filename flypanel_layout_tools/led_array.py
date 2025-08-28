@@ -1,3 +1,4 @@
+import pathlib
 import pcbnew
 import collections
 import numpy as np
@@ -6,50 +7,33 @@ from .convert import inch_to_mm
 from .convert import pos_to_pcbnew_vec 
 
 
-
-
 class LedArray:
+
+    """ Normal single color led array layout for panels pcbs """
 
     def __init__(self, config):
         self.config = self.load_config(config)
+        self.print_config()
+        print()
 
     def place_components(self, filename):
-
-        w_pcb = self.to_mm(self.config['pcb']['size_x'])
-        h_pcb = self.to_mm(self.config['pcb']['size_y'])
-        cx_pcb = self.to_mm(self.config['pcb']['center_x'])
-        cy_pcb = self.to_mm(self.config['pcb']['center_y'])
-
         nrows = self.config['pcb']['led']['nrows']
         ncols = self.config['pcb']['led']['ncols']
-        ref_prefix = self.config['pcb']['led']['ref_prefix']
-        ref_start = self.config['pcb']['led']['ref_start']
+        dim = self.config['pcb']['led']['ncols']
         angle_led = self.to_rad(self.config['pcb']['led']['angle'])
-
-        nleds = nrows*ncols
-        dx_led = w_pcb/ncols   # LED x spacing
-        dy_led = h_pcb/nrows   # LED y spacing
-        w_led = (ncols-1)*dx_led   # width  of LED array
-        h_led = (nrows-1)*dy_led   # height of LED array
-
         pcb = pcbnew.LoadBoard(filename)
-
-        led_num = ref_start 
         for i in range(ncols):
             for j in range(nrows):
-                ref = f'{ref_prefix}{led_num}'
-                x_led = cx_pcb + i*dx_led - 0.5*w_led  
-                y_led = cy_pcb + j*dy_led - 0.5*h_led
-                pos = (x_led, y_led)
-
+                sch_ind = i,j
+                pos_ind = self.sch_to_pos_ind(*sch_ind)
+                ref = self.label_from_sch_ind(*sch_ind)
+                pos = self.posxy_from_pos_ind(*pos_ind)
                 footprint = pcb.FindFootprintByReference(ref)
                 vec = pos_to_pcbnew_vec(pos)
                 footprint.SetPosition(vec)
                 footprint.SetOrientationDegrees(np.rad2deg(angle_led))
                 led_num += 1
-
         pcb.Save('test.kicad_pcb')
-
 
     def load_config(self, config):
         return config if isinstance(config, Config) else Config(filename=config)
@@ -63,51 +47,7 @@ class LedArray:
     def to_rad(self, v):
         return v if self.config['units']['angle'] == 'rad' else np.deg2rad(v)
 
-
-# ----------------------------------------------------------------------------------
-
-class MultiColorLedArray(LedArray):
-
-    def __init__(self, config):
-        super().__init__(config)
-        self.print_config()
-        print()
-
-    def place_components(self, filename):
-        w_pcb = self.to_mm(self.config['pcb']['size_x'])
-        h_pcb = self.to_mm(self.config['pcb']['size_y'])
-        cx_pcb = self.to_mm(self.config['pcb']['center_x'])
-        cy_pcb = self.to_mm(self.config['pcb']['center_y'])
-
-        dim = self.config['pcb']['led']['dim']
-        angle_led = self.to_rad(self.config['pcb']['led']['angle'])
-        num_color = self.config['pcb']['led']['ncolor']
-
-        nleds = dim**2
-        dx_led = w_pcb/dim        # LED x spacing
-        dy_led = h_pcb/dim        # LED y spacing
-        w_led = (dim-1)*dx_led  # width  of LED array
-        h_led = (dim-1)*dy_led  # height of LED array
-
-        pcb = pcbnew.LoadBoard(filename)
-
-        for i in range(0,dim): # cols
-            for j in range(0,dim): # rows
-
-                #ref = self.label_from_schem_ind(i,j)
-                ref = self.label_from_pos_ind(i,j)
-                y_led = cx_pcb + i*dx_led - 0.5*w_led  
-                x_led = cy_pcb + j*dy_led - 0.5*h_led
-                pos = (x_led, y_led)
-
-                footprint = pcb.FindFootprintByReference(ref)
-                vec = pos_to_pcbnew_vec(pos)
-                footprint.SetPosition(vec)
-                footprint.SetOrientationDegrees(np.rad2deg(angle_led))
-
-        pcb.Save('test.kicad_pcb')
-
-    def label_from_schem_ind(self,i,j):
+    def label_from_sch_ind(self,i,j):
         """ 
         Return the led label from the led's index values when laid out columnwise
         in the schematic 
@@ -115,22 +55,128 @@ class MultiColorLedArray(LedArray):
         dim = self.config['pcb']['led']['dim']
         ref_prefix = self.config['pcb']['led']['ref_prefix']
         k = 1 + i + j*dim
+
         return f'{ref_prefix}{k}'
-    
-    def label_from_pos_ind(self,i,j):
-        """ 
-        Return the led label from the led's position in panel array 
-        """
-        i_pcb, j_pcb = self.pcb_ind_from_schem_ind(i,j)
-        return self.label_from_schem_ind(i_pcb,j_pcb)
-    
-    def pcb_ind_from_schem_ind(self, i,j):
-        """ 
-        Return the led's position in the panel array given its  index
-        values in the schematic
-        """
+
+    def sch_to_pos_ind(self, i, j):
+        return i, j
+
+    def posxy_from_pos_ind(self, i, j):
+        w_pcb = self.to_mm(self.config['pcb']['size_x'])
+        h_pcb = self.to_mm(self.config['pcb']['size_y'])
+        cx_pcb = self.to_mm(self.config['pcb']['center_x'])
+        cy_pcb = self.to_mm(self.config['pcb']['center_y'])
+        try: 
+            dim = self.config['pcb']['led']['dim']
+        except KeyError:
+            nrows = self.config['pcb']['led']['nrows']
+            ncols = self.config['pcb']['led']['ncols']
+        else:
+            nrows = dim 
+            ncols = dim
+        dx_led = w_pcb/ncols   
+        dy_led = h_pcb/nrows   
+        w_led = (ncols-1)*dx_led   
+        h_led = (nrows-1)*dy_led   
+        x_led = cx_pcb + j*dx_led - 0.5*w_led  
+        y_led = cy_pcb + i*dy_led - 0.5*h_led
+        pos = (x_led, y_led)
+        return pos
+
+
+
+# ----------------------------------------------------------------------------------
+
+class DiagonalMultiColorLedArray(LedArray):
+
+    """ Diagonal multicolor led layout for panels pcbs.  """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def place_components(self, filename):
+        print('input file:  ', filename)
         dim = self.config['pcb']['led']['dim']
-        return i, (j-i)%dim
+        angle_led = self.to_rad(self.config['pcb']['led']['angle'])
+        pcb = pcbnew.LoadBoard(filename)
+
+        for i in range(0,dim): # cols
+            for j in range(0,dim): # rows
+                sch_ind = i, j
+                pos_ind = self.sch_to_pos_ind(*sch_ind)
+                ref = self.label_from_sch_ind(*sch_ind)
+                pos = self.posxy_from_pos_ind(*pos_ind)
+                footprint = pcb.FindFootprintByReference(ref)
+                vec = pos_to_pcbnew_vec(pos)
+                footprint.SetPosition(vec)
+                footprint.SetOrientationDegrees(np.rad2deg(angle_led))
+
+        inp_path = pathlib.Path(filename)
+        out_path = pathlib.Path(inp_path.parent, f'{inp_path.stem}_mod{inp_path.suffix}')
+        print('output file: ', out_path)
+        pcb.Save(str(out_path))
+
+    def sch_to_pos_ind(self, i, j):
+        dim = self.config['pcb']['led']['dim']
+        return i, (i+j)%dim
+
+    
+
+
+class BoustrophedonMultiColorLedArray(LedArray):
+
+    """ 
+    Boustrophedon 'like the ox turns' or 'as the ox plows' multicolor led
+    layout for panels pcbs.
+    """
+
+    def __init__(self, config):
+        super().__init__(config)
+
+    def place_components(self, filename):
+        print('input file:  ', filename)
+        dim = self.config['pcb']['led']['dim']
+        angle_led = self.to_rad(self.config['pcb']['led']['angle'])
+        pcb = pcbnew.LoadBoard(filename)
+
+        for i in range(dim): # cols
+            for j in range(dim): # rows
+                sch_ind = i, j
+                pos_ind = self.sch_to_pos_ind(*sch_ind)
+                ref = self.label_from_sch_ind(*sch_ind)
+                pos = self.posxy_from_pos_ind(*pos_ind)
+                footprint = pcb.FindFootprintByReference(ref)
+                vec = pos_to_pcbnew_vec(pos)
+                footprint.SetPosition(vec)
+                footprint.SetOrientationDegrees(np.rad2deg(angle_led))
+
+        inp_path = pathlib.Path(filename)
+        out_path = pathlib.Path(inp_path.parent, f'{inp_path.stem}_mod{inp_path.suffix}')
+        print('output file: ', out_path)
+        pcb.Save(str(out_path))
+
+    def sch_to_pos_ind(self,i,j):
+        dim = self.config['pcb']['led']['dim']
+        step = self.config['pcb']['led']['step']
+        if step%2 != 0:
+            raise ValueError('step must be divisible by 2')
+        if dim%2 != 0:
+            raise ValueError('dim must be divisible by 2')
+        if j%step < step//2:
+            if i<dim//2:
+                pos_ind = 2*i, j
+            else:
+                pos_ind = 2*(20 - (i+1)), step//2 + j 
+        else:
+            if i<dim//2:
+                pos_ind = 2*i + 1, j - step//2 
+            else:
+                pos_ind = 2*(20 - (i+1)) + 1, j 
+        return pos_ind
+
+
+
+
 
 
 # Utility functions

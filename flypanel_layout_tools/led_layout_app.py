@@ -1,6 +1,9 @@
 import pathlib
 import click
-from .led_array import MultiColorLedArray
+from .config import Config 
+from .led_array import LedArray
+from .led_array import DiagonalMultiColorLedArray
+from .led_array import BoustrophedonMultiColorLedArray
 
 @click.command()
 @click.help_option('-h', '--help')
@@ -9,8 +12,8 @@ from .led_array import MultiColorLedArray
 
 def cli(conf, file):
     """
-    Tool layout led array in .kicad_pcb file for the panel pcbs.  placing the components on
-    a .kicad_pcb file. 
+    Panel pcb led array layout tool. Place led components on the .kicad_pcb file
+    into rectangular array based on the config file parameters. 
 
     """
     print()
@@ -18,7 +21,15 @@ def cli(conf, file):
     print(f'----------------')
     print(f'config:    {conf}')
     print()
-    layout = MultiColorLedArray(conf)
+
+    config = Config(filename=conf)
+    match config['pcb']['led']['pattern']:
+        case 'boustrophedon':
+            layout = BoustrophedonMultiColorLedArray(config)
+        case 'diagonal':
+            layout = DiagonalMultiColorLedArray(config)
+        case _:
+            layout = LedArray(config)
     if file is not None:
         layout.place_components(file)
 
