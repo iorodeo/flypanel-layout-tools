@@ -45,6 +45,7 @@ class RingLayout:
         panel_width = self.to_mm(self.config['panel']['width'])
         panel_depth = self.to_mm(self.config['panel']['depth'])
         offset_angle = self.to_rad(self.config['panel']['offset_angle'])
+        adjust_angle = self.to_rad(self.config['panel']['adjust_angle'])
         omitted_panels = self.config['panel']['omitted']
         installed_mask = [not (i in omitted_panels) for i in range(num_panel)]
         num_installed = np.array(installed_mask).sum()
@@ -66,7 +67,7 @@ class RingLayout:
         radius_pins = radius_front + pin_depth
 
         # Array of angular positions
-        angles = np.arange(num_panel)*subtended_angle + offset_angle
+        angles = -(np.arange(num_panel)*subtended_angle + offset_angle)
         angles = angles[installed_mask]
         angles = -angles
 
@@ -95,6 +96,7 @@ class RingLayout:
                     'subtended'    : subtended_angle,
                     'omitted'      : omitted_panels,
                     'offset_angle' : offset_angle,
+                    'adjust_angle' : adjust_angle,
                     'pcb_side'     : pcb_side,
                     'ref_prefix'   : panel_ref_prefix,
                     },
@@ -544,6 +546,7 @@ def get_new_comp_data(arena_values, pcb_params, panel_ref_list, panel_ref_to_rel
     angles = arena_values['angles']
     pin_centers = arena_values['pin_centers']
     pcb_side = arena_values['panel']['pcb_side']
+    adjust_angle = arena_values['panel']['adjust_angle']
 
     # Get desired x,y positions and angles for panel headers
     new_comp_data = {}
@@ -551,7 +554,7 @@ def get_new_comp_data(arena_values, pcb_params, panel_ref_list, panel_ref_to_rel
         angle = -(angles[ind] + np.pi/2) 
         cx, cy = pin_centers[ind]
         cx, cy = float(cx + pcb_cx), float(cy + pcb_cy)
-        new_comp_data[panel_ref] = {'x': cx, 'y': cy, 'angle': angle }
+        new_comp_data[panel_ref] = {'x': cx, 'y': cy, 'angle': angle + adjust_angle}
 
     # Get model data and data for relative components
     model_data = cur_comp_data[model_ref]
